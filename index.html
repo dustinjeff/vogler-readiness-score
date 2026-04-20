@@ -665,6 +665,18 @@
 </div>
 
 <script>
+// ============================================================
+// TRACKING — postMessage to parent (Webflow/GTM)
+// ============================================================
+function trackEvent(eventName, params) {
+  var data = {type: 'vogler-tracking', event: eventName, params: params || {}};
+  if (window.parent !== window) {
+    window.parent.postMessage(data, '*');
+  }
+}
+
+trackEvent('rechner_started', {rechner: 'readiness-score'});
+
 const questions = [
   {
     id: 'acquisition',
@@ -871,6 +883,13 @@ function selectAnswer(questionIndex, value) {
   answers[questionIndex] = value;
   updateUI();
 
+  trackEvent('rechner_step', {
+    rechner: 'readiness-score',
+    step: questionIndex + 1,
+    step_name: questions[questionIndex].id,
+    answer_value: value
+  });
+
   // Auto-advance after short delay
   if (current < questions.length - 1) {
     setTimeout(() => nextQuestion(), 500);
@@ -955,6 +974,15 @@ function showResult() {
   document.getElementById('profileTitle').textContent = profile.title;
   document.getElementById('profileDesc').textContent = profile.desc;
   document.getElementById('profileRec').innerHTML = `<strong>Empfehlung:</strong> ${profile.rec}`;
+
+  // --- Tracking: Ergebnis ---
+  trackEvent('rechner_result', {
+    rechner: 'readiness-score',
+    score: score,
+    profile: profile.title,
+    strengths: strengths.map(s => s.id).join(','),
+    weaknesses: weaknesses.map(w => w.id).join(',')
+  });
 
   // Dynamic CTAs
   const ctaPrimary = document.getElementById('ctaPrimary');
@@ -1042,6 +1070,11 @@ function sendEmail() {
   const email = document.getElementById('emailInput').value;
   if (!email || !email.includes('@')) return;
 
+  trackEvent('rechner_lead_capture', {
+    rechner: 'readiness-score',
+    action: 'email_result'
+  });
+
   // Simulate sending (in production: POST to backend/Brevo)
   document.getElementById('emailForm').classList.remove('visible');
   document.getElementById('emailSent').classList.add('visible');
@@ -1054,6 +1087,7 @@ function copyShareLink() {
     el.classList.add('visible');
     setTimeout(() => el.classList.remove('visible'), 2000);
   });
+  trackEvent('rechner_cta_clicked', {rechner: 'readiness-score', cta: 'link_teilen'});
 }
 
 function restart() {
